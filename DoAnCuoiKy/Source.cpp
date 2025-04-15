@@ -5,387 +5,427 @@
 #include <algorithm>
 #include <fstream>
 #include <sstream>
-#include <chrono>
 using namespace std;
 
 class NHANVIEN
 {
 protected:
-	string name;
-	string id;
-	string gr;
-	string pass;
+    string name;
+    string id;
+    string gr;
+    string pass;
 public:
-	
-	virtual void out() = 0;
-	string getId() const { return id; }
-	string getPass() const { return pass; }
-	string getName() const { return name; }
-	string getGroup() const { return gr; }
-		
+
+    virtual void out() = 0;
+    string getId() const { return id; }
+    string getPass() const { return pass; }
+    string getName() const { return name; }
+    string getGr() const { return gr; }
+
 };
 class FULLTIME : public NHANVIEN
 {
 private:
-	int day;
-	int lam;
-	int nghi;
+    int day;
+    int lam;
+    int nghi;
 public:
-	void out()
-	{
-		cout << left << setw(30) << name << setw(10) << id << setw(10) << pass << setw(10) << gr << setw(10) << "FT" << setw(10) << lam << setw(10) << nghi << setw(10) << " " << "\n";
-
-	}
-	void getday()
-	{
-		time_t now = time(0);
-		tm ltm;
-		localtime_s(&ltm, &now);
-		day = ltm.tm_mday;
-	}
-	void Docfile_csv(string hoten, string mnv, string mk, string bp, int ngay_lam, int ngay_nghi)
-	{
-		name = hoten;
-		id = mnv;
-		pass = mk;
-		gr = bp;
-		lam = ngay_lam;
-		nghi = ngay_nghi;
-	}
-
+    void out()
+    {
+        cout << left << setw(30) << name << setw(10) << id << setw(10) << pass << setw(10) << gr << setw(10) << "FT" << setw(10) << lam << setw(10) << nghi << setw(10) << " " << "\n";
+    }
+    void getday()
+    {
+        time_t now = time(0);
+        tm ltm;
+        localtime_s(&ltm, &now);
+        day = ltm.tm_mday;
+    }
+    void Docfile_csv(string hoten, string mnv, string mk, string bp, int ngay_lam, int ngay_nghi)
+    {
+        name = hoten;
+        id = mnv;
+        pass = mk;
+        gr = bp;
+        lam = ngay_lam;
+        nghi = ngay_nghi;
+    }
 };
 class PARTTIME : public NHANVIEN
 {
 private:
-	int hour;
-public:
-	void out()
-	{
-		cout << left << setw(30) << name << setw(10) << id << setw(10) << pass << setw(10) << gr << setw(10) << "PT" << setw(10) << " " << setw(10) << " " << setw(10) << hour << "\n";
+    int hour;
+    time_t checkInTime;
+    time_t checkOutTime;
+    string timeToday;
 
-	}
-	void Docfile_csv(string hoten, string mnv, string mk, string bp, string gio_lam)
-	{
-		name = hoten;
-		id = mnv;
-		pass = mk;
-		gr = bp;
-		hour = stoi(gio_lam);
-	}
+public:
+    void out()
+    {
+        cout << left << setw(30) << name << setw(10) << id << setw(10) << pass << setw(10) << gr << setw(10) << "PT" << setw(10) << " " << setw(10) << " " << setw(10) << hour << "\n";
+    }
+    void Docfile_csv(string hoten, string mnv, string mk, string bp, string gio_lam)
+    {
+        name = hoten;
+        id = mnv;
+        pass = mk;
+        gr = bp;
+        hour = stoi(gio_lam);
+    }
+    void setCheckInTime()
+    {
+        checkInTime = time(0);
+    }
+    void setCheckOutTime()
+    {
+        checkOutTime = time(0);
+        int duration = static_cast<int>(difftime(checkOutTime, checkInTime) / 60);
+        hour += duration / 60;
+
+        // Ghi chuỗi thời gian
+        tm in, out;
+        localtime_s(&in, &checkInTime);
+        localtime_s(&out, &checkOutTime);
+
+        char bufIn[6], bufOut[6];
+        strftime(bufIn, sizeof(bufIn), "%H:%M", &in);
+        strftime(bufOut, sizeof(bufOut), "%H:%M", &out);
+
+        timeToday = string(bufIn) + "-" + string(bufOut);
+    }
+    time_t getCheckInTime() const { return checkInTime; }
+    int getHour() const { return hour; }
+    string getTimeToday() const { return timeToday; }
 };
 class DANHSACH
 {
 private:
-	vector <NHANVIEN*> ds;
-	vector <FULLTIME> ft;
-	vector <PARTTIME> pt;
+    vector <NHANVIEN*> ds;
+    vector <FULLTIME> ft;
+    vector <PARTTIME> pt;
 
 public:
-	void Add()
-	{
-		for (auto& nv : ft)
-			ds.push_back(&nv);
-		for (auto& nv : pt)
-			ds.push_back(&nv);
-	}
-	void Inds()
-	{
-		cout << left << setw(30) << "Ho ten " << setw(10) << "MNV" << setw(10) << "Mat khau" << setw(10) << "Bo phan" << setw(10) << "Loai" << setw(10) << "Ngay lam" << setw(10) << "Ngay nghi" << setw(10) << "So gio lam" << "\n";
-		for (auto nv : ds)
-		{
-			if (FULLTIME* fulltime = dynamic_cast<FULLTIME*>(nv))
-			{
-				fulltime->out();
-			}
-			if (PARTTIME* parttime = dynamic_cast<PARTTIME*>(nv))
-			{
-				parttime->out();
-			}
-		}
-	}
-	void DocDS()
-	{
-		ft.clear();
-		pt.clear();
-		ifstream file("ds.csv");
-		if (!file.is_open())
-		{
-			cout << "Khong the mo file !\n";
-			return;
-		}
-		string line;
-		getline(file, line);
+    void Add()
+    {
+        for (auto& nv : ft)
+            ds.push_back(&nv);
+        for (auto& nv : pt)
+            ds.push_back(&nv);
+    }
+    void Inds()
+    {
+        cout << left << setw(30) << "Ho ten " << setw(10) << "MNV" << setw(10) << "Mat khau" << setw(10) << "Bo phan" << setw(10) << "Loai" << setw(10) << "Ngay lam" << setw(10) << "Ngay nghi" << setw(10) << "So gio lam" << "\n";
+        for (auto nv : ds)
+        {
+            if (FULLTIME* fulltime = dynamic_cast<FULLTIME*>(nv))
+            {
+                fulltime->out();
+            }
+            if (PARTTIME* parttime = dynamic_cast<PARTTIME*>(nv))
+            {
+                parttime->out();
+            }
+        }
+    }
+    void DocDS()
+    {
+        ft.clear();
+        pt.clear();
+        ifstream file("ds.csv");
+        if (!file.is_open())
+        {
+            cout << "Khong the mo file !\n";
+            return;
+        }
+        string line;
+        getline(file, line);
 
-		int d;
-		time_t now = time(0);
-		tm ltm;
-		localtime_s(&ltm, &now);
-		d = ltm.tm_mday;
+        int d;
+        time_t now = time(0);
+        tm ltm;
+        localtime_s(&ltm, &now);
+        d = ltm.tm_mday;
 
-		while (getline(file, line))
-		{
-			stringstream ss(line);
-			string temp;
-			vector<string> data;
-			while (getline(ss, temp, ','))
-			{
-				data.push_back(temp);
-			}
-			int lam = 0, nghi = 0;
-			if (data[4] == "FT")
-			{
-				FULLTIME nv1;
-				for (int i = 8; i < d + 8; i++)
-				{
-					if (data[i] == "o")
-						lam++;
-					if (data[i] == "x")
-						nghi++;
-				}
-				nv1.Docfile_csv(data[0], data[1], data[2], data[3], lam, nghi);
-				ft.push_back(nv1);
-			}
-			else if (data[4] == "PT")
-			{
-				PARTTIME nv2;
-				nv2.Docfile_csv(data[0], data[1], data[2], data[3], data[7]);
-				pt.push_back(nv2);
-			}
-		}
-		file.close();
-		ds.clear();
-		Add();
-	}	
-	string getCurrentTime()
-	{
-		auto now = chrono::system_clock::now();
-		time_t now_time = chrono::system_clock::to_time_t(now);
-		tm tm_now;
-		localtime_s(&tm_now, &now_time);
+        while (getline(file, line))
+        {
+            stringstream ss(line);
+            string temp;
+            vector<string> data;
+            while (getline(ss, temp, ','))
+            {
+                data.push_back(temp);
+            }
+            int lam = 0, nghi = 0;
+            if (data[4] == "FT")
+            {
+                FULLTIME nv1;
+                for (int i = 8; i < d + 8; i++)
+                {
+                    if (data[i] == "o")
+                        lam++;
+                    if (data[i] == "x")
+                        nghi++;
+                }
+                nv1.Docfile_csv(data[0], data[1], data[2], data[3], lam, nghi);
+                ft.push_back(nv1);
+            }
+            else if (data[4] == "PT")
+            {
+                PARTTIME nv2;
+                nv2.Docfile_csv(data[0], data[1], data[2], data[3], data[7]);
+                pt.push_back(nv2);
+            }
+        }
+        file.close();
+        ds.clear();
+        Add();
+    }
+    void UpdateCSV_FT(const string& id, const string& pass)
+    {
+        // Đọc toàn bộ file vào bộ nhớ
+        ifstream inFile("ds.csv");
+        vector<string> lines;
+        string line;
 
-		stringstream ss;
-		ss << put_time(&tm_now, "%H:%M:%S");
-		return ss.str();
-	}
-	double calculateHours(const string& timeIn, const string& timeOut)
-	{
-		tm tmIn = {}, tmOut = {};
-		istringstream ssIn(timeIn), ssOut(timeOut);
-		char discard;
+        // Lấy ngày hiện tại
+        time_t now = time(0);
+        tm ltm;
+        localtime_s(&ltm, &now);
+        int currentDay = ltm.tm_mday;
+        int columnToUpdate = 7 + currentDay; // Cột cần cập nhật (0-based index)
 
-		ssIn >> tmIn.tm_hour >> discard >> tmIn.tm_min >> discard >> tmIn.tm_sec;
-		ssOut >> tmOut.tm_hour >> discard >> tmOut.tm_min >> discard >> tmOut.tm_sec;
+        // Đọc header
+        getline(inFile, line);
+        lines.push_back(line);
 
-		double seconds = difftime(mktime(&tmOut), mktime(&tmIn));
-		return seconds / 3600.0; // Chuyển sang giờ
-	}
-	void UpdateCSV(const string& id, const string& pass, bool isCheckIn)
-	{
-		ifstream inFile("ds.csv");
-		vector<string> lines;
-		string line;
+        // Tìm nhân viên và cập nhật
+        bool found = false;
+        while (getline(inFile, line))
+        {
+            stringstream ss(line);
+            string temp;
+            vector<string> data;
+            while (getline(ss, temp, ','))
+            {
+                data.push_back(temp);
+            }
 
-		// Lấy ngày hiện tại
-		time_t now = time(0);
-		tm ltm;
-		localtime_s(&ltm, &now);
-		int currentDay = ltm.tm_mday;
+            if (data[1] == id && data[2] == pass)
+            {
+                found = true;
+                if (data.size() > columnToUpdate)
+                {
+                    data[columnToUpdate] = "o";
+                }
 
-		getline(inFile, line); // Bỏ qua dòng header
-		lines.push_back(line);
+                // Tạo lại dòng từ data
+                string updatedLine;
+                for (size_t i = 0; i < data.size(); ++i)
+                {
+                    if (i != 0) updatedLine += ",";
+                    updatedLine += data[i];
+                }
+                lines.push_back(updatedLine);
+            }
+            else
+            {
+                lines.push_back(line);
+            }
+        }
+        inFile.close();
 
-		bool found = false;
+        if (!found)
+        {
+            cout << "Khong tim thay nhan vien hoac mat khau khong dung!\n";
+            return;
+        }
 
-		while (getline(inFile, line))
-		{
-			stringstream ss(line);
-			string temp;
-			vector<string> data;
+        // Ghi lại toàn bộ file
+        ofstream outFile("ds.csv");
+        for (const auto& l : lines)
+        {
+            outFile << l << "\n";
+        }
+        outFile.close();
 
-			while (getline(ss, temp, ','))
-			{
-				data.push_back(temp);
-			}
+        cout << "Check-in thanh cong!\n";
+    }
+    void CheckinFT()
+    {
+        string id;
+        string pass;
+        cout << "Nhap ma nhan vien: ";
+        cin.ignore();
+        getline(cin, id);
+        cout << "Nhap mat khau: ";
+        getline(cin, pass);
+        // Kiểm tra mật khẩu
+        bool valid = false;
+        for (auto& nv : ds)
+        {
+            if (nv->getId() == id && nv->getPass() == pass)
+            {
+                valid = true;
+                break;
+            }
+        }
 
-			if (data[1] == id && data[2] == pass)
-			{
-				found = true;
-				if (data[4] == "FT") // Full-time
-				{
-					int columnToUpdate = 7 + currentDay;
-					if (data.size() > columnToUpdate)
-					{
-						data[columnToUpdate] = "o"; // Đánh dấu đã check-in
-					}
-				}
-				else if (data[4] == "PT") // Part-time
-				{
-					int columnToUpdate = 7 + currentDay;
-					if (data.size() <= columnToUpdate)
-					{
-						// Đảm bảo đủ số cột
-						data.resize(columnToUpdate + 1, "");
-					}
+        if (!valid)
+        {
+            cout << "Ma nhan vien hoac mat khau khong dung!\n";
+            return;
+        }
 
-					string currentTime = getCurrentTime();
+        // Cập nhật file CSV
+        UpdateCSV_FT(id, pass);
+    }
+    void UpdateCSV_PT(const string& id, const string& pass, int new_hour, const string& timeStr)
+    {
+        ifstream inFile("ds.csv");
+        vector<string> lines;
+        string line;
 
-					if (isCheckIn)
-					{
-						// Ghi lại thời gian check-in
-						data[columnToUpdate] = "in:" + currentTime;
-					}
-					else
-					{
-						string existing = data[columnToUpdate];
-						if (existing.find("in:") != string::npos)
-						{
-							// Trích xuất thời gian check-in
-							string timeIn = existing.substr(3); // Bỏ "in:"
-							string timeOut = currentTime;
+        // Lấy ngày hiện tại
+        time_t now = time(0);
+        tm ltm;
+        localtime_s(&ltm, &now);
+        int currentDay = ltm.tm_mday;
+        int colDay = 7 + currentDay; // Cột ngày hiện tại
 
-							double hoursWorked = calculateHours(timeIn, timeOut);
+        // Header
+        getline(inFile, line);
+        lines.push_back(line);
 
-							// Cập nhật tổng số giờ làm
-							int totalHours = stoi(data[7]);
-							totalHours += static_cast<int>(hoursWorked + 0.5); // Làm tròn
-							data[7] = to_string(totalHours);
+        while (getline(inFile, line))
+        {
+            stringstream ss(line);
+            string temp;
+            vector<string> data;
+            while (getline(ss, temp, ','))
+                data.push_back(temp);
 
-							// Ghi thời gian check-out
-							data[columnToUpdate] = "in:" + timeIn + " - out:" + timeOut;
-						}
-					}
-				}
+            if (data[1] == id && data[2] == pass && data[4] == "PT")
+            {
+                data[7] = to_string(new_hour);
 
+                // Ghi thời gian check-in/out vào cột ngày hiện tại
+                if (data.size() <= colDay)
+                    data.resize(colDay + 1, ""); // mở rộng nếu thiếu
 
-				// Cập nhật lại dòng
-				string updatedLine;
-				for (size_t i = 0; i < data.size(); ++i)
-				{
-					if (i != 0) updatedLine += ",";
-					updatedLine += data[i];
-				}
-				lines.push_back(updatedLine);
-			}
-			else
-			{
-				lines.push_back(line);
-			}
-		}
-		inFile.close();
+                data[colDay] = timeStr;
 
-		if (!found)
-		{
-			cout << "Khong tim thay nhan vien hoac mat khau khong dung!\n";
-			return;
-		}
+                // tạo lại dòng
+                string updatedLine;
+                for (size_t i = 0; i < data.size(); ++i)
+                {
+                    if (i != 0) updatedLine += ",";
+                    updatedLine += data[i];
+                }
+                lines.push_back(updatedLine);
+            }
+            else
+            {
+                lines.push_back(line);
+            }
+        }
+        inFile.close();
 
-		// Ghi lại file
-		ofstream outFile("ds.csv");
-		for (const auto& l : lines)
-		{
-			outFile << l << "\n";
-		}
-		outFile.close();
+        ofstream outFile("ds.csv");
+        for (const auto& l : lines)
+            outFile << l << "\n";
+        outFile.close();
+    }
+    void CheckinPT()
+    {
+        string id, pass;
+        cout << "Nhap ma nhan vien: ";
+        cin.ignore();
+        getline(cin, id);
+        cout << "Nhap mat khau: ";
+        getline(cin, pass);
 
-		cout << (isCheckIn ? "Check-in" : "Check-out") << " thanh cong!\n";
-	}
-	void Checkin()
-	{
-		string id, pass;
+        for (auto& nv : pt)
+        {
+            if (nv.getId() == id && nv.getPass() == pass)
+            {
+                nv.setCheckInTime();
 
-		cout << "Nhap ma nhan vien: ";
-		cin.ignore();
-		getline(cin, id);
+                // In thời gian check-in bằng ctime_s
+                char buffer[26];
+                time_t t = nv.getCheckInTime(); // lấy time_t
+                ctime_s(buffer, sizeof(buffer), &t);
 
-		cout << "Nhap mat khau: ";
-		getline(cin, pass);
+                cout << "Check-in thanh cong luc " << buffer << "\n";
+                return;
+            }
+        }
+        cout << "Ma nhan vien hoac mat khau khong dung!\n";
+    }
+    void CheckoutPT()
+    {
+        string id, pass;
+        cout << "Nhap ma nhan vien: ";
+        cin.ignore();
+        getline(cin, id);
+        cout << "Nhap mat khau: ";
+        getline(cin, pass);
 
-		bool valid = false;
-		for (auto& nv : ds)
-		{
-			if (nv->getId() == id && nv->getPass() == pass)
-			{
-				valid = true;
-				break;
-			}
-		}
-
-		if (!valid)
-		{
-			cout << "Ma nhan vien hoac mat khau khong dung!\n";
-			return;
-		}
-
-		UpdateCSV(id, pass, true);
-	}
-	void Checkout()
-	{
-		string id, pass;
-
-		cout << "Nhap ma nhan vien: ";
-		cin.ignore();
-		getline(cin, id);
-
-		cout << "Nhap mat khau: ";
-		getline(cin, pass);
-
-		bool valid = false;
-		for (auto& nv : ds)
-		{
-			if (nv->getId() == id && nv->getPass() == pass)
-			{
-				valid = true;
-				break;
-			}
-		}
-
-		if (!valid)
-		{
-			cout << "Ma nhan vien hoac mat khau khong dung!\n";
-			return;
-		}
-
-		UpdateCSV(id, pass, false);
-	}
-	void MENU()
-	{
-		int chon;
-		while (1)
-		{
-			cout << "\n Quan ly nhan vien ";
-			cout << "\n 1. Doc danh sach nhan vien ";
-			cout << "\n 2. Xuat danh sach nhan vien ";
-			cout << "\n 3. Check in nhan vien ";
-			cout << "\n 4. Check out nhan vien ";
-			cout << "\n 0. Thoat \n ";
-			cin >> chon;
-			if (chon == 1)
-			{
-				DocDS();
-			}
-			if (chon == 2)
-			{
-				Inds();
-			}
-			if (chon == 3)
-			{
-				Checkin();
-			}
-			if (chon == 4)
-			{
-				Checkout();
-			}
-			if (chon == 0)
-			{
-				break;
-			}
-		}
-	}
+        for (auto& nv : pt)
+        {
+            if (nv.getId() == id && nv.getPass() == pass)
+            {
+                nv.setCheckOutTime();
+                cout << "Check-out thanh cong. So gio lam tang len: " << nv.getHour() << "\n";
+                UpdateCSV_PT(id, pass, nv.getHour(), nv.getTimeToday());
+                return;
+            }
+        }
+        cout << "Ma nhan vien hoac mat khau khong dung!\n";
+    }
+    void MENU()
+    {
+        int chon;
+        while (1)
+        {
+            cout << "\n ==================== Quan ly nhan su ================ \n";
+            cout << "\n 1. Doc danh sach nhan vien ";
+            cout << "\n 2. Xuat danh sach nhan vien ";
+            cout << "\n 3. Check in nhan vien full time";
+            cout << "\n 4. Check in nhan vien part time";
+            cout << "\n 5. Check out nhan vien part time";
+            cout << "\n 0. Thoat \n ";
+            cin >> chon;
+            if (chon == 1)
+            {
+                DocDS();
+            }
+            else if (chon == 2)
+            {
+                Inds();
+            }
+            else if (chon == 3)
+            {
+                CheckinFT();
+            }
+            else if (chon == 4)
+            {
+                CheckinPT();
+            }
+            else if (chon == 5)
+            {
+                CheckoutPT();
+            }
+            else if (chon == 0)
+            {
+                break;
+            }
+        }
+    }
 };
 
 int main()
 {
-	DANHSACH ds;
-	ds.MENU();
-	return 0;
+    DANHSACH ds;
+    ds.MENU();
+    return 0;
 }
