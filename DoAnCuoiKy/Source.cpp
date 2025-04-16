@@ -395,29 +395,29 @@ public:
             cout << "\n 5. Check out nhan vien part time";
             cout << "\n 0. Thoat \n ";
             cin >> chon;
-            if (chon == 1)
+            switch (chon)
             {
-                DocDS();
-            }
-            else if (chon == 2)
-            {
-                Inds();
-            }
-            else if (chon == 3)
-            {
-                CheckinFT();
-            }
-            else if (chon == 4)
-            {
-                CheckinPT();
-            }
-            else if (chon == 5)
-            {
-                CheckoutPT();
-            }
-            else if (chon == 0)
-            {
-                break;
+                case 1:
+                    DocDS();
+                    break;
+                case 2:
+                    Inds();
+                    break;
+                case 3:
+                    CheckinFT();
+                    break;
+                case 4:
+                    CheckinPT();
+                    break;
+                case 5:
+                    CheckoutPT();
+                    break;
+                case 0:
+                    cout << "Thoat chuong trinh...\n";
+                    break;
+                default:
+                    cout << "Lua chon khong hop le! Vui long chon lai!\n";
+                    break;
             }
         }
     }
